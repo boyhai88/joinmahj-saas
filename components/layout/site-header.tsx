@@ -2,6 +2,11 @@
 
 import { useState } from "react";
 import Button from "@/components/ui/button";
+import UserMenu from "@/components/layout/user-menu";
+
+type SiteHeaderProps = {
+  userEmail?: string | null;
+};
 
 const navLinks = [
   { label: "Why Mahjong", href: "#why" },
@@ -13,7 +18,7 @@ const navLinks = [
   { label: "Pricing", href: "#pricing" },
 ];
 
-export default function SiteHeader() {
+export default function SiteHeader({ userEmail }: SiteHeaderProps) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -46,15 +51,21 @@ export default function SiteHeader() {
 
           {/* Right actions */}
           <div className="flex shrink-0 items-center gap-1.5">
-            <a
-              href="#pricing"
-              className="hidden rounded-full px-5 py-2.5 text-sm font-medium text-fg transition-colors hover:bg-[oklch(90%_0.018_85/0.5)] sm:inline-flex"
-            >
-              Log in
-            </a>
-            <Button href="#cta" size="sm">
-              Start Free
-            </Button>
+            {userEmail ? (
+              <UserMenu email={userEmail} />
+            ) : (
+              <>
+                <a
+                  href="/login"
+                  className="hidden rounded-full px-5 py-2.5 text-sm font-medium text-fg transition-colors hover:bg-[oklch(90%_0.018_85/0.5)] sm:inline-flex"
+                >
+                  Login
+                </a>
+                <Button href="/signup" size="sm">
+                  Sign Up
+                </Button>
+              </>
+            )}
             <button
               type="button"
               onClick={() => setOpen((value) => !value)}
@@ -97,15 +108,26 @@ export default function SiteHeader() {
                   {link.label}
                 </a>
               ))}
-              <a
-                href="#cta"
-                onClick={() => setOpen(false)}
-                className="mt-3 border-t border-border pt-4 text-[15px] font-medium text-fg sm:hidden"
-              >
-                <span className="block rounded-full bg-primary px-6 py-3.5 text-center text-surface">
-                  Start Free
-                </span>
-              </a>
+              {!userEmail ? (
+                <div className="mt-3 flex flex-col gap-1 border-t border-border pt-4 sm:hidden">
+                  <a
+                    href="/login"
+                    onClick={() => setOpen(false)}
+                    className="rounded-[10px] px-3.5 py-3 text-[15px] font-medium text-muted transition-colors hover:bg-[oklch(90%_0.018_85/0.35)] hover:text-fg"
+                  >
+                    Login
+                  </a>
+                  <a
+                    href="/signup"
+                    onClick={() => setOpen(false)}
+                    className="text-[15px] font-medium text-fg"
+                  >
+                    <span className="block rounded-full bg-primary px-6 py-3.5 text-center text-surface">
+                      Sign Up
+                    </span>
+                  </a>
+                </div>
+              ) : null}
             </nav>
           ) : null}
         </div>
