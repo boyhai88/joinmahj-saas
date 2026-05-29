@@ -33,7 +33,7 @@ export async function signIn(
   }
 
   revalidatePath("/", "layout");
-  redirect("/profile");
+  redirect("/dashboard");
 }
 
 export async function signUp(
@@ -59,7 +59,7 @@ export async function signUp(
   // When email confirmation is enabled, no session is returned until confirmed.
   if (data.session) {
     revalidatePath("/", "layout");
-    redirect("/profile");
+    redirect("/dashboard");
   }
 
   return {

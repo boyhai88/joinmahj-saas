@@ -90,11 +90,11 @@ export default function UserMenu({ email }: UserMenuProps) {
           <div className="pt-1.5">
             <a
               role="menuitem"
-              href="/profile"
+              href="/dashboard"
               onClick={() => setOpen(false)}
               className={itemClasses}
             >
-              Profile
+              Dashboard
             </a>
 
             <form action={signOut}>

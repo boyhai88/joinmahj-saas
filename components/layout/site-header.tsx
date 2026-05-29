@@ -27,7 +27,7 @@ export default function SiteHeader({ userEmail }: SiteHeaderProps) {
         <div className="relative flex items-center justify-between gap-5 rounded-2xl border border-border bg-[oklch(99%_0.01_90/0.72)] px-[18px] py-3 shadow-soft backdrop-blur-xl sm:px-7">
           {/* Logo */}
           <a
-            href="#hero"
+            href={userEmail ? "/dashboard" : "/"}
             className="shrink-0 font-display text-2xl font-semibold tracking-[-0.03em] text-fg transition-opacity hover:opacity-85"
           >
             Join<span className="text-accent">Mahj</span>
