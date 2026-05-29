@@ -1,3 +1,4 @@
+import SiteHeader from "@/components/layout/site-header";
 import HeroSection from "@/components/sections/hero/hero-section";
 import WhySection from "@/components/sections/why/why-section";
 import RoadmapSection from "@/components/sections/roadmap/roadmap-section";
@@ -11,17 +12,20 @@ import FaqSection from "@/components/sections/faq/faq-section";
 
 export default function Home() {
   return (
-    <main className="flex-1">
-      <HeroSection />
-      <WhySection />
-      <RoadmapSection />
-      <CoachSection />
-      <PracticeSection />
-      <CommunitySection />
-      <TestimonialsSection />
-      <ClubsSection />
-      <PricingSection />
-      <FaqSection />
-    </main>
+    <>
+      <SiteHeader />
+      <main className="flex-1 pt-24">
+        <HeroSection />
+        <WhySection />
+        <RoadmapSection />
+        <CoachSection />
+        <PracticeSection />
+        <CommunitySection />
+        <TestimonialsSection />
+        <ClubsSection />
+        <PricingSection />
+        <FaqSection />
+      </main>
+    </>
   );
 }
