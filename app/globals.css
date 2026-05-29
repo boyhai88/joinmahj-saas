@@ -1,26 +1,51 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --bg: oklch(97% 0.018 85);
+  --surface: oklch(99% 0.01 90);
+  --fg: oklch(18% 0.012 280);
+  --muted: oklch(52% 0.025 85);
+  --border: oklch(90% 0.018 85);
+  --accent: oklch(72% 0.085 75);
+  --primary: oklch(38% 0.045 130);
+  --primary-hover: oklch(32% 0.045 130);
+  --gold-light: oklch(88% 0.04 75);
+  --success: oklch(58% 0.14 145);
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-fg: var(--fg);
+  --color-muted: var(--muted);
+  --color-border: var(--border);
+  --color-accent: var(--accent);
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-gold-light: var(--gold-light);
+  --color-success: var(--success);
+
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --font-display: var(--font-cormorant), Georgia, serif;
+
+  --shadow-soft: 0 4px 24px oklch(18% 0.012 280 / 0.05);
+  --shadow-card: 0 12px 40px oklch(18% 0.012 280 / 0.08);
+  --shadow-elevated: 0 24px 64px oklch(18% 0.012 280 / 0.1);
+
+  --radius-card: 24px;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  scroll-behavior: smooth;
+  overflow-x: hidden;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-sans), -apple-system, BlinkMacSystemFont, "Segoe UI",
+    system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
 }
