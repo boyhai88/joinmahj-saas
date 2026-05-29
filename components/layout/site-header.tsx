@@ -13,8 +13,8 @@ const navLinks = [
   { label: "Learn", href: "/learn" },
   { label: "Coach", href: "/coach" },
   { label: "Practice", href: "/#tools" },
-  { label: "Community", href: "/#social" },
-  { label: "Clubs", href: "/#clubs" },
+  { label: "Community", href: "/community" },
+  { label: "Clubs", href: "/clubs" },
   { label: "Pricing", href: "/#pricing" },
 ];
 
