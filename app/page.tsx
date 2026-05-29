@@ -24,7 +24,7 @@ export default async function Home() {
         <HeroSection />
         <WhySection />
         <RoadmapSection />
-        <CoachSection />
+        <CoachSection authed={Boolean(user)} />
         <PracticeSection />
         <CommunitySection />
         <TestimonialsSection />

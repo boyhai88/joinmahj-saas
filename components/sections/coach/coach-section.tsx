@@ -1,3 +1,5 @@
+import CoachCta from "@/components/sections/coach/coach-cta";
+
 type ChatMessage = {
   role: "user" | "ai";
   label: string;
@@ -29,7 +31,11 @@ const messages: ChatMessage[] = [
 
 const trustPills = ["Beginner-friendly", "No judgment", "Available 24/7"];
 
-export default function CoachSection() {
+type CoachSectionProps = {
+  authed?: boolean;
+};
+
+export default function CoachSection({ authed = false }: CoachSectionProps) {
   return (
     <section
       id="ai-coach"
@@ -70,7 +76,7 @@ export default function CoachSection() {
               {trustPills.map((pill) => (
                 <li
                   key={pill}
-                  className="inline-flex items-center gap-2 rounded-full border border-border bg-surface px-5 py-[11px] text-[13px] font-medium text-fg shadow-[0_4px_24px_oklch(18%_0.012_280/0.05)] before:h-1.5 before:w-1.5 before:shrink-0 before:rounded-full before:bg-accent before:content-['']"
+                  className="inline-flex items-center gap-2 rounded-full border border-border bg-surface px-5 py-[11px] text-[13px] font-medium text-fg shadow-soft before:h-1.5 before:w-1.5 before:shrink-0 before:rounded-full before:bg-accent before:content-['']"
                 >
                   {pill}
                 </li>
@@ -91,7 +97,7 @@ export default function CoachSection() {
             />
 
             <div
-              className="relative z-1 overflow-hidden rounded-[24px] border border-border bg-surface shadow-[0_24px_64px_oklch(18%_0.012_280/0.10),0_0_0_1px_oklch(100%_0_0/0.5)_inset]"
+              className="relative z-1 overflow-hidden rounded-card border border-border bg-surface shadow-[0_24px_64px_oklch(18%_0.012_280/0.10),0_0_0_1px_oklch(100%_0_0/0.5)_inset]"
               role="region"
               aria-label="JoinMahj Coach conversation"
             >
@@ -142,7 +148,7 @@ export default function CoachSection() {
                           {message.text}
                         </div>
                       ) : (
-                        <div className="relative rounded-[20px] rounded-bl-[5px] border border-border bg-surface py-[15px] pl-5 pr-[18px] text-sm leading-[1.58] text-fg shadow-[0_4px_24px_oklch(18%_0.012_280/0.05)] before:absolute before:inset-y-3 before:left-0 before:w-[3px] before:rounded-r-sm before:bg-linear-to-b before:from-accent before:to-[oklch(72%_0.085_75/0.5)] before:content-['']">
+                        <div className="relative rounded-[20px] rounded-bl-[5px] border border-border bg-surface py-[15px] pl-5 pr-[18px] text-sm leading-[1.58] text-fg shadow-soft before:absolute before:inset-y-3 before:left-0 before:w-[3px] before:rounded-r-sm before:bg-linear-to-b before:from-accent before:to-[oklch(72%_0.085_75/0.5)] before:content-['']">
                           {message.text}
                         </div>
                       )}
@@ -151,32 +157,8 @@ export default function CoachSection() {
                 })}
               </div>
 
-              {/* Composer */}
-              <form className="flex items-center gap-2.5 border-t border-border bg-surface px-5 pb-5 pt-4">
-                <input
-                  type="text"
-                  placeholder="Ask about your next move…"
-                  aria-label="Message to JoinMahj Coach"
-                  className="min-w-0 flex-1 rounded-full border border-border bg-bg px-5 py-3.5 text-sm text-fg outline-none transition focus:border-[oklch(72%_0.085_75/0.55)] focus:shadow-[0_0_0_3px_oklch(88%_0.04_75/0.45)] placeholder:text-[oklch(52%_0.025_85/0.55)]"
-                />
-                <button
-                  type="button"
-                  aria-label="Send message"
-                  className="flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-full bg-primary text-surface shadow-[0_4px_14px_oklch(38%_0.045_130/0.25)] transition hover:scale-[1.04] hover:bg-primary-hover"
-                >
-                  <svg
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className="h-[17px] w-[17px]"
-                  >
-                    <path d="M5 12h14M12 5l7 7-7 7" />
-                  </svg>
-                </button>
-              </form>
+              {/* Composer — routes to the real coach app */}
+              <CoachCta href={authed ? "/coach" : "/login"} />
             </div>
           </div>
         </div>

@@ -1,9 +1,64 @@
 import { NextResponse } from "next/server";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import type { Message, MessageRole } from "@/lib/coach/actions";
 
 const FALLBACK_REPLY = "Sorry, AI Coach is temporarily unavailable.";
 const DEFAULT_TITLE = "New conversation";
+const FREE_DAILY_LIMIT = 3;
+const LIMIT_REACHED_MESSAGE =
+  "You've reached today's free limit. Upgrade to Mahj Member for unlimited coaching.";
+
+type QuotaResult =
+  | { allowed: true; remaining: number | null }
+  | { allowed: false; message: string };
+
+// Members and Club Pro get unlimited access; everyone else is limited to
+// FREE_DAILY_LIMIT messages per day. Returns remaining (null = unlimited).
+async function consumeQuota(
+  supabase: SupabaseClient,
+  userId: string
+): Promise<QuotaResult> {
+  const { data: subscription } = await supabase
+    .from("subscriptions")
+    .select("plan, status")
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  const unlimited =
+    !!subscription &&
+    (subscription.status === "active" || subscription.status === "trialing") &&
+    (subscription.plan === "member" || subscription.plan === "club_pro");
+
+  if (unlimited) {
+    return { allowed: true, remaining: null };
+  }
+
+  const today = new Date().toISOString().slice(0, 10);
+
+  const { data: usage } = await supabase
+    .from("ai_usage")
+    .select("message_count")
+    .eq("user_id", userId)
+    .eq("usage_date", today)
+    .maybeSingle();
+
+  const count = usage?.message_count ?? 0;
+
+  if (count >= FREE_DAILY_LIMIT) {
+    return { allowed: false, message: LIMIT_REACHED_MESSAGE };
+  }
+
+  const nextCount = count + 1;
+  await supabase
+    .from("ai_usage")
+    .upsert(
+      { user_id: userId, usage_date: today, message_count: nextCount },
+      { onConflict: "user_id,usage_date" }
+    );
+
+  return { allowed: true, remaining: Math.max(0, FREE_DAILY_LIMIT - nextCount) };
+}
 
 const SYSTEM_PROMPT = [
   "You are JoinMahj Coach, a warm, patient American Mahjong coach for beginners.",
@@ -99,6 +154,12 @@ export async function POST(request: Request) {
 
   const { chatId, content } = parsed;
 
+  // Membership gate: check before processing any AI request.
+  const quota = await consumeQuota(supabase, user.id);
+  if (!quota.allowed) {
+    return NextResponse.json({ error: quota.message }, { status: 429 });
+  }
+
   // 1. Persist the user's message (RLS verifies chat ownership).
   const { data: userRow, error: userError } = await supabase
     .from("ai_messages")
@@ -176,5 +237,10 @@ export async function POST(request: Request) {
     created_at: aiRow.created_at,
   };
 
-  return NextResponse.json({ userMessage, assistantMessage, title });
+  return NextResponse.json({
+    userMessage,
+    assistantMessage,
+    title,
+    remaining: quota.remaining,
+  });
 }

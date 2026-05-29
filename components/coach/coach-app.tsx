@@ -8,22 +8,30 @@ import {
   type Message,
 } from "@/lib/coach/actions";
 
+type Membership = {
+  unlimited: boolean;
+  remaining: number;
+};
+
 type SendResponse = {
   userMessage: Message;
   assistantMessage: Message;
   title: string;
+  remaining: number | null;
 };
 
 type CoachAppProps = {
   initialChats: Chat[];
   initialActiveChatId: string | null;
   initialMessages: Message[];
+  membership: Membership;
 };
 
 export default function CoachApp({
   initialChats,
   initialActiveChatId,
   initialMessages,
+  membership,
 }: CoachAppProps) {
   const [chats, setChats] = useState<Chat[]>(initialChats);
   const [activeChatId, setActiveChatId] = useState<string | null>(
@@ -34,6 +42,7 @@ export default function CoachApp({
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [mobileSidebar, setMobileSidebar] = useState(false);
+  const [remaining, setRemaining] = useState(membership.remaining);
 
   const threadEndRef = useRef<HTMLDivElement>(null);
 
@@ -102,11 +111,23 @@ export default function CoachApp({
       });
 
       if (!response.ok) {
-        throw new Error("Sorry, AI Coach is temporarily unavailable.");
+        const data = (await response.json().catch(() => null)) as {
+          error?: string;
+        } | null;
+        if (response.status === 429 && !membership.unlimited) {
+          setRemaining(0);
+        }
+        throw new Error(
+          data?.error ?? "Sorry, AI Coach is temporarily unavailable."
+        );
       }
 
-      const { userMessage, assistantMessage, title } =
+      const { userMessage, assistantMessage, title, remaining: nextRemaining } =
         (await response.json()) as SendResponse;
+
+      if (!membership.unlimited && typeof nextRemaining === "number") {
+        setRemaining(nextRemaining);
+      }
 
       setMessages((prev) => [...prev, userMessage, assistantMessage]);
 
@@ -207,6 +228,21 @@ export default function CoachApp({
 
       {/* Main chat area */}
       <section className="flex min-w-0 flex-1 flex-col overflow-hidden rounded-card border border-border bg-surface shadow-soft">
+        {/* Membership / quota banner */}
+        <div className="flex items-center justify-between gap-3 border-b border-border bg-surface px-4 py-2.5 sm:px-6">
+          {membership.unlimited ? (
+            <span className="inline-flex items-center gap-2 text-[13px] font-medium text-fg">
+              <span className="h-1.5 w-1.5 rounded-full bg-success" />
+              Mahj Member · Unlimited AI Coaching
+            </span>
+          ) : (
+            <span className="inline-flex items-center gap-2 text-[13px] font-medium text-muted">
+              <span className="h-1.5 w-1.5 rounded-full bg-accent" />
+              AI Coach Remaining Today: {remaining} / 3
+            </span>
+          )}
+        </div>
+
         {/* Mobile toolbar */}
         <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-3 lg:hidden">
           <button

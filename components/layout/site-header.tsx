@@ -9,13 +9,13 @@ type SiteHeaderProps = {
 };
 
 const navLinks = [
-  { label: "Why Mahjong", href: "#why" },
-  { label: "Learn", href: "#roadmap" },
-  { label: "Coach", href: "#ai-coach" },
-  { label: "Practice", href: "#tools" },
-  { label: "Community", href: "#social" },
-  { label: "Clubs", href: "#clubs" },
-  { label: "Pricing", href: "#pricing" },
+  { label: "Why Mahjong", href: "/#why" },
+  { label: "Learn", href: "/learn" },
+  { label: "Coach", href: "/coach" },
+  { label: "Practice", href: "/#tools" },
+  { label: "Community", href: "/#social" },
+  { label: "Clubs", href: "/#clubs" },
+  { label: "Pricing", href: "/#pricing" },
 ];
 
 export default function SiteHeader({ userEmail }: SiteHeaderProps) {

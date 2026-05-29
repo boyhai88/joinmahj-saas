@@ -1,8 +1,12 @@
 import Container from "@/components/ui/container";
 import SectionHeader from "@/components/ui/section-header";
 import Button from "@/components/ui/button";
+import PricingCheckoutButton from "@/components/pricing/pricing-checkout-button";
+
+type PlanKey = "free" | "member" | "club_pro";
 
 type Plan = {
+  key: PlanKey;
   tier: string;
   name: string;
   amount: string;
@@ -13,8 +17,15 @@ type Plan = {
   badge?: string;
 };
 
+const priceIdByPlan: Record<PlanKey, string | undefined> = {
+  free: undefined,
+  member: process.env.NEXT_PUBLIC_STRIPE_MAHJ_MEMBER_PRICE_ID,
+  club_pro: process.env.NEXT_PUBLIC_STRIPE_CLUB_PRO_PRICE_ID,
+};
+
 const plans: Plan[] = [
   {
+    key: "free",
     tier: "Starter",
     name: "Free",
     amount: "$0",
@@ -22,6 +33,7 @@ const plans: Plan[] = [
     cta: "Get Started",
   },
   {
+    key: "member",
     tier: "Individual",
     name: "Mahj Member",
     amount: "$19",
@@ -37,6 +49,7 @@ const plans: Plan[] = [
     badge: "Most Popular",
   },
   {
+    key: "club_pro",
     tier: "For organizers",
     name: "Club Pro",
     amount: "$49",
@@ -103,13 +116,18 @@ export default function PricingSection() {
                 ))}
               </ul>
 
-              <Button
-                href="#cta"
-                variant={plan.featured ? "primary" : "secondary"}
-                className="w-full"
-              >
-                {plan.cta}
-              </Button>
+              {plan.key === "free" ? (
+                <Button href="#cta" variant="secondary" className="w-full">
+                  {plan.cta}
+                </Button>
+              ) : (
+                <PricingCheckoutButton
+                  plan={plan.key}
+                  priceId={priceIdByPlan[plan.key]}
+                  label={plan.cta}
+                  variant={plan.featured ? "primary" : "secondary"}
+                />
+              )}
             </article>
           ))}
         </div>
