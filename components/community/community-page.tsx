@@ -6,10 +6,14 @@ import { useRouter } from "next/navigation";
 import Container from "@/components/ui/container";
 import Button from "@/components/ui/button";
 import CreatePostDialog from "@/components/community/create-post-dialog";
-import { getPosts, type CommunityPost } from "@/lib/community/actions";
+import {
+  getPosts,
+  toggleLike,
+  type CommunityPostListItem,
+} from "@/lib/community/actions";
 
 type CommunityPageProps = {
-  initialPosts: CommunityPost[];
+  initialPosts: CommunityPostListItem[];
   authed: boolean;
 };
 
@@ -29,12 +33,46 @@ function authorLabel(userId: string) {
   return `Player ${userId.slice(0, 6)}`;
 }
 
+function HeartIcon({ filled }: { filled: boolean }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill={filled ? "currentColor" : "none"}
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+      className="h-4 w-4"
+    >
+      <path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8z" />
+    </svg>
+  );
+}
+
+function CommentIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+      className="h-4 w-4"
+    >
+      <path d="M21 11.5a8.38 8.38 0 0 1-8.5 8.5 8.5 8.5 0 0 1-3.6-.8L3 21l1.9-5.7A8.38 8.38 0 0 1 4 11.5 8.5 8.5 0 0 1 12.5 3 8.38 8.38 0 0 1 21 11.5z" />
+    </svg>
+  );
+}
+
 export default function CommunityPage({
   initialPosts,
   authed,
 }: CommunityPageProps) {
   const router = useRouter();
-  const [posts, setPosts] = useState<CommunityPost[]>(initialPosts);
+  const [posts, setPosts] = useState<CommunityPostListItem[]>(initialPosts);
   const [open, setOpen] = useState(false);
 
   function startCreate() {
@@ -48,10 +86,53 @@ export default function CommunityPage({
   async function handleCreated() {
     setOpen(false);
     try {
-      const refreshed = await getPosts();
-      setPosts(refreshed);
+      setPosts(await getPosts());
     } catch {
       // Keep existing list if refresh fails.
+    }
+  }
+
+  async function handleLike(post: CommunityPostListItem) {
+    if (!authed) {
+      router.push("/login");
+      return;
+    }
+
+    // Optimistic update.
+    setPosts((prev) =>
+      prev.map((p) =>
+        p.id === post.id
+          ? {
+              ...p,
+              liked_by_me: !p.liked_by_me,
+              likes_count: p.likes_count + (p.liked_by_me ? -1 : 1),
+            }
+          : p
+      )
+    );
+
+    try {
+      const result = await toggleLike(post.id);
+      setPosts((prev) =>
+        prev.map((p) =>
+          p.id === post.id
+            ? { ...p, liked_by_me: result.liked, likes_count: result.likes_count }
+            : p
+        )
+      );
+    } catch {
+      // Revert on failure.
+      setPosts((prev) =>
+        prev.map((p) =>
+          p.id === post.id
+            ? {
+                ...p,
+                liked_by_me: post.liked_by_me,
+                likes_count: post.likes_count,
+              }
+            : p
+        )
+      );
     }
   }
 
@@ -90,53 +171,44 @@ export default function CommunityPage({
         ) : (
           <div className="flex flex-col gap-4">
             {posts.map((post) => (
-              <Link
+              <article
                 key={post.id}
-                href={`/community/${post.id}`}
-                className="block rounded-card border border-border bg-surface p-6 shadow-soft transition duration-200 hover:-translate-y-1 hover:shadow-card"
+                className="rounded-card border border-border bg-surface p-6 shadow-soft transition duration-200 hover:shadow-card"
               >
-                <h3 className="mb-2 font-display text-[1.35rem] font-medium leading-[1.2] tracking-[-0.01em] text-fg">
-                  {post.title}
-                </h3>
-                <p className="mb-3 text-[13px] text-muted">
-                  {authorLabel(post.user_id)} · {formatDate(post.created_at)}
-                </p>
-                <p className="mb-4 text-sm leading-[1.6] text-muted">
-                  {preview(post.content)}
-                </p>
+                <Link href={`/community/${post.id}`} className="block">
+                  <h3 className="mb-2 font-display text-[1.35rem] font-medium leading-[1.2] tracking-[-0.01em] text-fg">
+                    {post.title}
+                  </h3>
+                  <p className="mb-3 text-[13px] text-muted">
+                    {authorLabel(post.user_id)} · {formatDate(post.created_at)}
+                  </p>
+                  <p className="mb-4 text-sm leading-[1.6] text-muted">
+                    {preview(post.content)}
+                  </p>
+                </Link>
+
                 <div className="flex items-center gap-5 text-[13px] text-muted">
-                  <span className="inline-flex items-center gap-1.5">
-                    <svg
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.8"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      aria-hidden
-                      className="h-4 w-4"
-                    >
-                      <path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8z" />
-                    </svg>
+                  <button
+                    type="button"
+                    onClick={() => handleLike(post)}
+                    aria-pressed={post.liked_by_me}
+                    aria-label={post.liked_by_me ? "Unlike post" : "Like post"}
+                    className={`inline-flex items-center gap-1.5 transition-colors ${
+                      post.liked_by_me ? "text-accent" : "hover:text-fg"
+                    }`}
+                  >
+                    <HeartIcon filled={post.liked_by_me} />
                     {post.likes_count}
-                  </span>
-                  <span className="inline-flex items-center gap-1.5">
-                    <svg
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.8"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      aria-hidden
-                      className="h-4 w-4"
-                    >
-                      <path d="M21 11.5a8.38 8.38 0 0 1-8.5 8.5 8.5 8.5 0 0 1-3.6-.8L3 21l1.9-5.7A8.38 8.38 0 0 1 4 11.5 8.5 8.5 0 0 1 12.5 3 8.38 8.38 0 0 1 21 11.5z" />
-                    </svg>
+                  </button>
+                  <Link
+                    href={`/community/${post.id}`}
+                    className="inline-flex items-center gap-1.5 transition-colors hover:text-fg"
+                  >
+                    <CommentIcon />
                     {post.comments_count}
-                  </span>
+                  </Link>
                 </div>
-              </Link>
+              </article>
             ))}
           </div>
         )}

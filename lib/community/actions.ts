@@ -39,6 +39,10 @@ export type CreateCommentInput = {
   content: string;
 };
 
+export type CommunityPostListItem = CommunityPost & {
+  liked_by_me: boolean;
+};
+
 export type PostDetail = {
   post: CommunityPost;
   comments: CommunityComment[];
@@ -92,7 +96,7 @@ export async function createPost(
   return data as CommunityPost;
 }
 
-export async function getPosts(): Promise<CommunityPost[]> {
+export async function getPosts(): Promise<CommunityPostListItem[]> {
   const supabase = await createClient();
 
   const { data, error } = await supabase
@@ -104,7 +108,26 @@ export async function getPosts(): Promise<CommunityPost[]> {
     throw new Error(error.message);
   }
 
-  return (data ?? []) as CommunityPost[];
+  const posts = (data ?? []) as CommunityPost[];
+
+  // Mark which posts the current user has liked (for filled hearts).
+  let likedIds = new Set<string>();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (user && posts.length > 0) {
+    const { data: likes } = await supabase
+      .from("community_likes")
+      .select("post_id")
+      .eq("user_id", user.id);
+    likedIds = new Set((likes ?? []).map((row) => row.post_id as string));
+  }
+
+  return posts.map((post) => ({
+    ...post,
+    liked_by_me: likedIds.has(post.id),
+  }));
 }
 
 export async function getPost(id: string): Promise<PostDetail | null> {
