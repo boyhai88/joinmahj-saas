@@ -8,7 +8,7 @@ type Variant = "primary" | "secondary";
 type Size = "sm" | "md" | "lg";
 
 const base =
-  "inline-flex items-center justify-center gap-2 rounded-full font-medium transition-transform duration-200 hover:-translate-y-0.5";
+  "inline-flex items-center justify-center gap-2 rounded-full font-medium transition-transform duration-200 hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0";
 
 const variantClasses: Record<Variant, string> = {
   primary:

@@ -19,7 +19,7 @@ export default async function Analyze() {
       <SiteHeader userEmail={user?.email ?? null} />
       <main className="pt-24">
         <section className="py-[clamp(40px,6vw,72px)]">
-          <AnalyzePage />
+          <AnalyzePage authed={Boolean(user)} />
         </section>
       </main>
     </>

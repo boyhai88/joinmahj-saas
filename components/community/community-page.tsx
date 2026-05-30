@@ -176,6 +176,14 @@ export default function CommunityPage({
                 className="rounded-card border border-border bg-surface p-6 shadow-soft transition duration-200 hover:shadow-card"
               >
                 <Link href={`/community/${post.id}`} className="block">
+                  {post.image_url ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={post.image_url}
+                      alt=""
+                      className="mb-4 max-h-[260px] w-full rounded-[16px] object-cover"
+                    />
+                  ) : null}
                   <h3 className="mb-2 font-display text-[1.35rem] font-medium leading-[1.2] tracking-[-0.01em] text-fg">
                     {post.title}
                   </h3>

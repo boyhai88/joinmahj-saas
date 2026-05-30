@@ -101,6 +101,15 @@ export default function PostDetail({ initial, authed }: PostDetailProps) {
           {authorLabel(post.user_id)} · {formatDate(post.created_at)}
         </p>
 
+        {post.image_url ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={post.image_url}
+            alt="Shared Mahjong hand"
+            className="mb-6 max-h-[480px] w-full rounded-[16px] object-contain"
+          />
+        ) : null}
+
         <div className="whitespace-pre-wrap text-[15px] leading-[1.7] text-fg">
           {post.content}
         </div>

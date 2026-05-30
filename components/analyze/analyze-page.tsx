@@ -1,14 +1,22 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import Container from "@/components/ui/container";
 import Button from "@/components/ui/button";
+import { createPost } from "@/lib/community/actions";
 import { uploadHandImage } from "@/lib/analyze/upload-hand";
 import { analyzeHand } from "@/lib/analyze/analyze-hand";
 import {
   analyzeStrategy,
   type StrategyResult,
 } from "@/lib/analyze/strategy-advisor";
+import TileEditor from "@/components/analyze/tile-editor";
+import {
+  calculateShanten,
+  type ShantenResult,
+} from "@/lib/mahjong/shanten";
+import { rankDraws } from "@/lib/mahjong/draw-value";
 
 const ANALYZE_ERROR =
   "Unable to analyze this hand.\n请重新上传更清晰的图片。";
@@ -16,7 +24,8 @@ const ANALYZE_ERROR =
 const ACCEPTED = ["image/jpeg", "image/jpg", "image/png"];
 const MAX_BYTES = 10 * 1024 * 1024; // 10MB
 
-export default function AnalyzePage() {
+export default function AnalyzePage({ authed }: { authed: boolean }) {
+  const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [fileName, setFileName] = useState<string | null>(null);
@@ -24,10 +33,18 @@ export default function AnalyzePage() {
   const [uploading, setUploading] = useState(false);
   const [uploadedUrl, setUploadedUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [analyzing, setAnalyzing] = useState(false);
+  const [recognizing, setRecognizing] = useState(false);
   const [tiles, setTiles] = useState<string[] | null>(null);
+  const [editedTiles, setEditedTiles] = useState<string[]>([]);
+  const [strategizing, setStrategizing] = useState(false);
   const [strategy, setStrategy] = useState<StrategyResult | null>(null);
+  const [shanten, setShanten] = useState<ShantenResult | null>(null);
   const [analyzeError, setAnalyzeError] = useState<string | null>(null);
+  const [publishing, setPublishing] = useState(false);
+  const [publishError, setPublishError] = useState<string | null>(null);
+  const [showAdvanced, setShowAdvanced] = useState(false);
+
+  const drawSummary = shanten ? rankDraws(shanten.effectiveTiles) : null;
 
   async function handleFiles(files: FileList | null) {
     const file = files?.[0];
@@ -45,7 +62,9 @@ export default function AnalyzePage() {
     setError(null);
     setUploadedUrl(null);
     setTiles(null);
+    setEditedTiles([]);
     setStrategy(null);
+    setShanten(null);
     setAnalyzeError(null);
     if (previewUrl) URL.revokeObjectURL(previewUrl);
     setPreviewUrl(URL.createObjectURL(file));
@@ -72,32 +91,109 @@ export default function AnalyzePage() {
     setError(null);
     setUploading(false);
     setTiles(null);
+    setEditedTiles([]);
     setStrategy(null);
+    setShanten(null);
     setAnalyzeError(null);
-    setAnalyzing(false);
+    setRecognizing(false);
+    setStrategizing(false);
     if (inputRef.current) inputRef.current.value = "";
   }
 
-  async function handleAnalyze() {
-    if (!uploadedUrl || analyzing) return;
+  // Step 1: recognize tiles from the image (does NOT run strategy).
+  async function handleRecognize() {
+    if (uploading || !uploadedUrl || recognizing) return;
     setAnalyzeError(null);
-    setTiles(null);
     setStrategy(null);
-    setAnalyzing(true);
+    setShanten(null);
+    setTiles(null);
+    setEditedTiles([]);
+    setRecognizing(true);
     try {
-      // 1. Recognize tiles from the image.
       const { tiles: recognized } = await analyzeHand(uploadedUrl);
       setTiles(recognized);
-      if (recognized.length === 0) {
-        throw new Error("No tiles recognized.");
-      }
-      // 2. Get strategy advice for the recognized hand.
-      const advice = await analyzeStrategy(recognized);
+      setEditedTiles(recognized);
+    } catch {
+      setAnalyzeError(ANALYZE_ERROR);
+    } finally {
+      setRecognizing(false);
+    }
+  }
+
+  // Editing tiles invalidates any previous strategy result.
+  function handleTilesChange(next: string[]) {
+    setEditedTiles(next);
+    setStrategy(null);
+    setShanten(null);
+    setAnalyzeError(null);
+  }
+
+  // Step 2: analyze strategy for the (possibly edited) tiles.
+  async function handleStrategy() {
+    if (editedTiles.length === 0 || strategizing) return;
+    setAnalyzeError(null);
+    setStrategy(null);
+    setStrategizing(true);
+    // Local hand-efficiency metrics (no network).
+    setShanten(calculateShanten(editedTiles));
+    try {
+      const advice = await analyzeStrategy(editedTiles);
       setStrategy(advice);
     } catch {
       setAnalyzeError(ANALYZE_ERROR);
     } finally {
-      setAnalyzing(false);
+      setStrategizing(false);
+    }
+  }
+
+  async function handlePublish() {
+    if (!strategy || publishing) return;
+    if (!authed) {
+      router.push("/login");
+      return;
+    }
+
+    setPublishError(null);
+    setPublishing(true);
+    try {
+      const winning = strategy.winningPotential.endsWith("%")
+        ? strategy.winningPotential
+        : `${strategy.winningPotential}%`;
+
+      const content = [
+        "AI Mahjong Analysis",
+        "",
+        "Recognized Tiles:",
+        editedTiles.join(", "),
+        "",
+        "Recommended Discard:",
+        strategy.discard,
+        "",
+        "Reason:",
+        strategy.reason,
+        "",
+        "Potential Hands:",
+        strategy.suggestions.join(", "),
+        "",
+        "Winning Potential:",
+        winning,
+        "",
+        "Question:",
+        "Would you agree with the AI recommendation?",
+      ].join("\n");
+
+      const post = await createPost({
+        title: "What would you discard here?",
+        content,
+        imageUrl: uploadedUrl ?? undefined,
+      });
+
+      router.push(`/community/${post.id}`);
+    } catch (err) {
+      setPublishError(
+        err instanceof Error ? err.message : "Could not publish discussion."
+      );
+      setPublishing(false);
     }
   }
 
@@ -148,15 +244,33 @@ export default function AnalyzePage() {
             <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
               <Button
                 type="button"
-                onClick={handleAnalyze}
-                disabled={uploading || !uploadedUrl || analyzing}
+                onClick={handleRecognize}
+                disabled={uploading || !uploadedUrl || recognizing}
               >
-                {analyzing ? "Analyzing…" : "Analyze Hand"}
+                {uploading
+                  ? "Uploading…"
+                  : recognizing
+                    ? "Recognizing…"
+                    : "Recognize Tiles"}
               </Button>
               <Button type="button" variant="secondary" onClick={clearImage}>
                 Remove photo
               </Button>
             </div>
+
+            <p
+              className={`mt-3 text-center text-[13px] ${
+                error ? "text-[oklch(45%_0.16_25)]" : "text-muted"
+              }`}
+            >
+              {uploading
+                ? "Please wait until the image upload finishes."
+                : error
+                  ? error
+                  : uploadedUrl
+                    ? "Ready to recognize tiles."
+                    : ""}
+            </p>
           </div>
         ) : (
           <div
@@ -230,13 +344,33 @@ export default function AnalyzePage() {
           </p>
         ) : null}
 
+        {/* Tile Editor (after recognition, before strategy) */}
+        {tiles !== null ? (
+          <div className="flex flex-col gap-4">
+            <TileEditor
+              tiles={editedTiles}
+              original={tiles}
+              onChange={handleTilesChange}
+            />
+            <div className="flex justify-center">
+              <Button
+                type="button"
+                onClick={handleStrategy}
+                disabled={editedTiles.length === 0 || strategizing}
+              >
+                {strategizing ? "Analyzing…" : "Analyze Strategy"}
+              </Button>
+            </div>
+          </div>
+        ) : null}
+
         {/* Result Area */}
         <article className="rounded-card border border-border bg-surface p-[clamp(24px,4vw,36px)] shadow-soft">
           <h2 className="mb-2 font-display text-[1.5rem] font-medium tracking-[-0.01em] text-fg">
             AI Analysis
           </h2>
 
-          {analyzing ? (
+          {strategizing ? (
             <p className="text-sm leading-[1.6] text-muted">Analyzing…</p>
           ) : analyzeError ? (
             <p className="whitespace-pre-line text-sm leading-[1.6] text-[oklch(45%_0.16_25)]">
@@ -244,6 +378,110 @@ export default function AnalyzePage() {
             </p>
           ) : strategy ? (
             <div className="flex flex-col gap-5">
+              {shanten ? (
+                <div className="rounded-card border border-border bg-bg p-5">
+                  <h3 className="mb-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-accent">
+                    Hand Efficiency
+                  </h3>
+                  <div className="mb-3">
+                    <p className="text-[13px] text-muted">Current Shanten</p>
+                    <p className="font-display text-[1.5rem] font-medium text-fg">
+                      {shanten.shanten} away
+                    </p>
+                  </div>
+                  {!drawSummary || shanten.effectiveTiles.length === 0 ? (
+                    <div className="mb-3">
+                      <p className="mb-1 text-[13px] text-muted">Best Draws</p>
+                      <p className="text-sm text-muted">
+                        No effective tiles calculated yet.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="mb-3 flex flex-col gap-4">
+                      {/* Top 3 */}
+                      <div>
+                        <p className="mb-2 text-[13px] text-muted">
+                          Top 3 Draws
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                          {drawSummary.top.map((tile, index) => (
+                            <span
+                              key={`top-${tile}-${index}`}
+                              className="inline-flex items-center rounded-full bg-gold-light px-3 py-1 text-[13px] font-medium text-primary"
+                            >
+                              {tile}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Tiered list */}
+                      <div>
+                        <p className="mb-2 text-[13px] text-muted">
+                          Most Valuable Draws
+                        </p>
+                        <div className="flex flex-col gap-3">
+                          {drawSummary.tiers.map((tier) => (
+                            <div key={tier.stars}>
+                              <p
+                                className="mb-1 text-sm text-accent"
+                                aria-label={`${tier.stars} stars`}
+                              >
+                                {"★".repeat(tier.stars)}
+                              </p>
+                              <div className="flex flex-wrap gap-2">
+                                {tier.tiles.map((tile, index) => (
+                                  <span
+                                    key={`${tier.stars}-${tile}-${index}`}
+                                    className="inline-flex items-center rounded-full border border-border bg-bg px-3 py-1 text-[13px] text-fg"
+                                  >
+                                    {tile}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Advanced: raw effective tiles list */}
+                      <div>
+                        <button
+                          type="button"
+                          onClick={() => setShowAdvanced((value) => !value)}
+                          className="text-[13px] font-medium text-muted underline-offset-2 transition-colors hover:text-fg hover:underline"
+                        >
+                          {showAdvanced
+                            ? "Hide effective tiles"
+                            : "Show all effective tiles"}
+                        </button>
+                        {showAdvanced ? (
+                          <ul className="mt-2 flex flex-col gap-1.5">
+                            {shanten.effectiveTiles.map((tile, index) => (
+                              <li
+                                key={`${tile}-${index}`}
+                                className="flex items-center gap-2.5 text-sm text-fg"
+                              >
+                                <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-accent" />
+                                {tile}
+                              </li>
+                            ))}
+                          </ul>
+                        ) : null}
+                      </div>
+                    </div>
+                  )}
+                  <div>
+                    <p className="text-[13px] text-muted">
+                      Effective Tile Count
+                    </p>
+                    <p className="font-display text-[1.25rem] font-medium text-fg">
+                      {shanten.count} tiles
+                    </p>
+                  </div>
+                </div>
+              ) : null}
+
               <div>
                 <h3 className="mb-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-accent">
                   Recommended Discard
@@ -294,9 +532,9 @@ export default function AnalyzePage() {
                 </div>
               ) : null}
 
-              {tiles && tiles.length > 0 ? (
+              {editedTiles.length > 0 ? (
                 <p className="border-t border-border pt-4 text-[13px] text-muted">
-                  Recognized: {tiles.join(", ")}
+                  Hand: {editedTiles.join(", ")}
                 </p>
               ) : null}
             </div>
@@ -315,9 +553,19 @@ export default function AnalyzePage() {
           <p className="mb-5 text-sm leading-[1.6] text-muted">
             Share your hand with the community.
           </p>
-          <Button type="button" variant="secondary" disabled>
-            Publish Discussion
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={handlePublish}
+            disabled={!strategy || publishing}
+          >
+            {publishing ? "Publishing…" : "Publish Discussion"}
           </Button>
+          {publishError ? (
+            <p className="mt-3 text-[13px] text-[oklch(45%_0.16_25)]">
+              {publishError}
+            </p>
+          ) : null}
         </article>
       </div>
     </Container>

@@ -15,10 +15,50 @@ const SYSTEM_PROMPT = [
   "2. Reason",
   "3. Suggested hand patterns",
   "4. Winning potential score",
+  "Respond in English only.",
+  "Do not use Chinese characters or Chinese Mahjong terms anywhere.",
+  "Translate all tile names and hand pattern names into English.",
+  "Examples: 九莲宝灯 -> Nine Gates; 清龙 -> Pure Straight; 平胡 -> All Sequences;",
+  "发财 -> Green Dragon; 红中 -> Red Dragon; 白板 -> White Dragon.",
   "Return JSON only.",
-  'Format: {"discard":"发财","reason":"...","winningPotential":"72%","suggestions":["平胡","混一色"]}',
+  'Format: {"discard":"Green Dragon","reason":"...","winningPotential":"72%","suggestions":["All Sequences","Half Flush"]}',
   "No markdown. No explanations. JSON only.",
 ].join("\n");
+
+// Safeguard: normalize any Chinese terms the model might still emit.
+const TERM_MAP: Record<string, string> = {
+  九莲宝灯: "Nine Gates",
+  清龙: "Pure Straight",
+  平胡: "All Sequences",
+  混一色: "Half Flush",
+  清一色: "Full Flush",
+  十三幺: "Thirteen Orphans",
+  七对子: "Seven Pairs",
+  碰碰胡: "All Triplets",
+  发财: "Green Dragon",
+  发: "Green Dragon",
+  红中: "Red Dragon",
+  中: "Red Dragon",
+  白板: "White Dragon",
+  白: "White Dragon",
+  东: "East Wind",
+  南: "South Wind",
+  西: "West Wind",
+  北: "North Wind",
+};
+
+// Longer keys first so multi-character terms win over single-character ones.
+const TERM_KEYS = Object.keys(TERM_MAP).sort((a, b) => b.length - a.length);
+
+function normalizeText(value: string): string {
+  let result = value;
+  for (const key of TERM_KEYS) {
+    if (result.includes(key)) {
+      result = result.split(key).join(TERM_MAP[key]);
+    }
+  }
+  return result;
+}
 
 export type StrategyResult = {
   discard: string;
@@ -57,13 +97,17 @@ function parseStrategy(content: string): StrategyResult | null {
           : "";
 
     return {
-      discard: typeof parsed.discard === "string" ? parsed.discard : "",
-      reason: typeof parsed.reason === "string" ? parsed.reason : "",
+      discard:
+        typeof parsed.discard === "string"
+          ? normalizeText(parsed.discard)
+          : "",
+      reason:
+        typeof parsed.reason === "string" ? normalizeText(parsed.reason) : "",
       winningPotential: winning,
       suggestions: Array.isArray(parsed.suggestions)
-        ? parsed.suggestions.filter(
-            (item): item is string => typeof item === "string"
-          )
+        ? parsed.suggestions
+            .filter((item): item is string => typeof item === "string")
+            .map(normalizeText)
         : [],
     };
   } catch {

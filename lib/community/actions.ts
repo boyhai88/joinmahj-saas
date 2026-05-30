@@ -7,6 +7,7 @@ export type CommunityPost = {
   user_id: string;
   title: string;
   content: string;
+  image_url: string | null;
   likes_count: number;
   comments_count: number;
   created_at: string;
@@ -32,6 +33,7 @@ export type CommunityLike = {
 export type CreatePostInput = {
   title: string;
   content: string;
+  imageUrl?: string;
 };
 
 export type CreateCommentInput = {
@@ -55,7 +57,7 @@ export type ToggleLikeResult = {
 };
 
 const POST_COLUMNS =
-  "id, user_id, title, content, likes_count, comments_count, created_at, updated_at";
+  "id, user_id, title, content, image_url, likes_count, comments_count, created_at, updated_at";
 const COMMENT_COLUMNS =
   "id, post_id, user_id, content, created_at, updated_at";
 
@@ -85,7 +87,12 @@ export async function createPost(
 
   const { data, error } = await supabase
     .from("community_posts")
-    .insert({ user_id: user.id, title, content })
+    .insert({
+      user_id: user.id,
+      title,
+      content,
+      image_url: input.imageUrl?.trim() || null,
+    })
     .select(POST_COLUMNS)
     .single();
 
