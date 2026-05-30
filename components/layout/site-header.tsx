@@ -9,10 +9,9 @@ type SiteHeaderProps = {
 };
 
 const navLinks = [
-  { label: "Why Mahjong", href: "/#why" },
+  { label: "Analyze", href: "/analyze" },
   { label: "Learn", href: "/learn" },
   { label: "Coach", href: "/coach" },
-  { label: "Practice", href: "/#tools" },
   { label: "Community", href: "/community" },
   { label: "Clubs", href: "/clubs" },
   { label: "Pricing", href: "/#pricing" },

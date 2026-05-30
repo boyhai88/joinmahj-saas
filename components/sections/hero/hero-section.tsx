@@ -49,11 +49,11 @@ export default function HeroSection() {
           </p>
 
           <div className="mb-9 flex flex-wrap items-center gap-3 sm:mb-12">
-            <Button href="#cta" size="lg">
-              Start Free
+            <Button href="/analyze" size="lg">
+              Analyze My Hand
             </Button>
-            <Button href="#clubs" variant="secondary" size="lg">
-              Explore Clubs
+            <Button href="/community" variant="secondary" size="lg">
+              Explore Community
             </Button>
           </div>
 
