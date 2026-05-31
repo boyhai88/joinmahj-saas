@@ -17,6 +17,8 @@ import {
   type ShantenResult,
 } from "@/lib/mahjong/shanten";
 import { rankDraws } from "@/lib/mahjong/draw-value";
+import { saveAnalysis } from "@/lib/analyze/history-actions";
+import Link from "next/link";
 
 const ANALYZE_ERROR =
   "Unable to analyze this hand.\n请重新上传更清晰的图片。";
@@ -43,6 +45,10 @@ export default function AnalyzePage({ authed }: { authed: boolean }) {
   const [publishing, setPublishing] = useState(false);
   const [publishError, setPublishError] = useState<string | null>(null);
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">(
+    "idle"
+  );
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   const drawSummary = shanten ? rankDraws(shanten.effectiveTiles) : null;
 
@@ -126,6 +132,32 @@ export default function AnalyzePage({ authed }: { authed: boolean }) {
     setStrategy(null);
     setShanten(null);
     setAnalyzeError(null);
+    setSaveStatus("idle");
+    setSaveError(null);
+  }
+
+  async function handleSave() {
+    if (!strategy || !shanten || saveStatus === "saving") return;
+    setSaveError(null);
+    setSaveStatus("saving");
+    try {
+      await saveAnalysis({
+        imageUrl: uploadedUrl,
+        tiles: editedTiles,
+        shanten: shanten.shanten,
+        discard: strategy.discard,
+        reason: strategy.reason,
+        winningPotential: strategy.winningPotential,
+        effectiveTiles: shanten.effectiveTiles,
+        potentialHands: strategy.suggestions,
+      });
+      setSaveStatus("saved");
+    } catch (err) {
+      setSaveError(
+        err instanceof Error ? err.message : "Could not save analysis."
+      );
+      setSaveStatus("idle");
+    }
   }
 
   // Step 2: analyze strategy for the (possibly edited) tiles.
@@ -134,13 +166,19 @@ export default function AnalyzePage({ authed }: { authed: boolean }) {
     setAnalyzeError(null);
     setStrategy(null);
     setStrategizing(true);
+    setSaveStatus("idle");
+    setSaveError(null);
     // Local hand-efficiency metrics (no network).
     setShanten(calculateShanten(editedTiles));
     try {
       const advice = await analyzeStrategy(editedTiles);
       setStrategy(advice);
-    } catch {
-      setAnalyzeError(ANALYZE_ERROR);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "";
+      // Surface the free-tier limit message; otherwise show the generic error.
+      setAnalyzeError(
+        message.startsWith("You have reached") ? message : ANALYZE_ERROR
+      );
     } finally {
       setStrategizing(false);
     }
@@ -533,10 +571,38 @@ export default function AnalyzePage({ authed }: { authed: boolean }) {
               ) : null}
 
               {editedTiles.length > 0 ? (
-                <p className="border-t border-border pt-4 text-[13px] text-muted">
+                <p className="text-[13px] text-muted">
                   Hand: {editedTiles.join(", ")}
                 </p>
               ) : null}
+
+              <div className="border-t border-border pt-5">
+                {saveStatus === "saved" ? (
+                  <p className="text-sm text-muted">
+                    Saved.{" "}
+                    <Link
+                      href="/profile/analyses"
+                      className="font-medium text-primary hover:underline"
+                    >
+                      View your analyses
+                    </Link>
+                  </p>
+                ) : (
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={handleSave}
+                    disabled={saveStatus === "saving"}
+                  >
+                    {saveStatus === "saving" ? "Saving…" : "Save Analysis"}
+                  </Button>
+                )}
+                {saveError ? (
+                  <p className="mt-2 text-[13px] text-[oklch(45%_0.16_25)]">
+                    {saveError}
+                  </p>
+                ) : null}
+              </div>
             </div>
           ) : (
             <p className="text-sm leading-[1.6] text-muted">

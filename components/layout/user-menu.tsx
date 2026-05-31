@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { signOut } from "@/lib/auth/actions";
 
@@ -88,14 +89,38 @@ export default function UserMenu({ email }: UserMenuProps) {
           </div>
 
           <div className="pt-1.5">
-            <a
+            <Link
               role="menuitem"
-              href="/dashboard"
+              href="/profile/analyses"
               onClick={() => setOpen(false)}
               className={itemClasses}
             >
-              Dashboard
-            </a>
+              My Analyses
+            </Link>
+            <Link
+              role="menuitem"
+              href="/community"
+              onClick={() => setOpen(false)}
+              className={itemClasses}
+            >
+              Community
+            </Link>
+            <Link
+              role="menuitem"
+              href="/analyze"
+              onClick={() => setOpen(false)}
+              className={itemClasses}
+            >
+              Analyze New Hand
+            </Link>
+            <Link
+              role="menuitem"
+              href="/pricing"
+              onClick={() => setOpen(false)}
+              className={itemClasses}
+            >
+              Billing
+            </Link>
 
             <form action={signOut}>
               <button role="menuitem" type="submit" className={itemClasses}>

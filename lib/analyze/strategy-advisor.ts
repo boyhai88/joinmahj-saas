@@ -6,6 +6,7 @@ const DASHSCOPE_URL =
   process.env.DASHSCOPE_BASE_URL ??
   "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions";
 const CHAT_MODEL = process.env.DASHSCOPE_CHAT_MODEL ?? "qwen-plus";
+const FREE_DAILY_LIMIT = 3;
 
 const SYSTEM_PROMPT = [
   "You are a professional Mahjong strategy coach.",
@@ -129,6 +130,38 @@ export async function analyzeStrategy(
 
   if (!user) {
     throw new Error("Not authenticated.");
+  }
+
+  // Membership gate: Pro is unlimited; Free is capped at FREE_DAILY_LIMIT/day.
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("plan")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  const isPro = profile?.plan === "pro";
+  if (!isPro) {
+    const today = new Date().toISOString().slice(0, 10);
+    const { data: usage } = await supabase
+      .from("user_usage")
+      .select("analysis_count")
+      .eq("user_id", user.id)
+      .eq("usage_date", today)
+      .maybeSingle();
+
+    const count = usage?.analysis_count ?? 0;
+    if (count >= FREE_DAILY_LIMIT) {
+      throw new Error(
+        "You have reached today's free limit. Upgrade to Pro for unlimited AI analysis."
+      );
+    }
+
+    await supabase
+      .from("user_usage")
+      .upsert(
+        { user_id: user.id, usage_date: today, analysis_count: count + 1 },
+        { onConflict: "user_id,usage_date" }
+      );
   }
 
   const apiKey = process.env.DASHSCOPE_API_KEY;
