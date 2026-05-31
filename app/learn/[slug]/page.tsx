@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
@@ -19,15 +20,42 @@ export async function generateMetadata({
   params,
 }: {
   params: Promise<{ slug: string }>;
-}) {
+}): Promise<Metadata> {
   const { slug } = await params;
   const result = getAcademyCourse(slug);
   if (!result) {
-    return { title: "Course — Mahjong Academy — JoinMahj" };
+    return { title: "Course | Mahjong Academy" };
   }
+
+  const { course } = result;
+  const title = `${course.title} | Mahjong Academy`;
+  const description = course.summary;
+  const canonical = `/learn/${course.slug}`;
+
   return {
-    title: `${result.course.title} — Mahjong Academy — JoinMahj`,
-    description: result.course.summary,
+    title,
+    description,
+    keywords: [
+      "mahjong",
+      "learn mahjong",
+      "mahjong course",
+      "mahjong tutorial",
+      course.title,
+    ],
+    alternates: {
+      canonical,
+    },
+    openGraph: {
+      title,
+      description,
+      type: "article",
+      url: canonical,
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+    },
   };
 }
 
@@ -123,8 +151,24 @@ export default async function CourseDetailPage({
     { label: "Lessons", value: String(lessons.length) },
   ];
 
+  const courseSchema = {
+    "@context": "https://schema.org",
+    "@type": "Course",
+    name: course.title,
+    description: course.summary,
+    educationalLevel: category.level,
+    provider: {
+      "@type": "Organization",
+      name: "JoinMahj",
+    },
+  };
+
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(courseSchema) }}
+      />
       <SiteHeader userEmail={user?.email ?? null} />
       <main className="pt-24 pb-[clamp(48px,8vw,96px)]">
         <section className="py-[clamp(32px,5vw,56px)]">
