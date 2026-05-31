@@ -9,6 +9,7 @@ import {
   getAllAcademyCourseSlugs,
   getCourseLessons,
 } from "@/lib/learn/academy-courses";
+import { getBeginnerContent } from "@/lib/learn/beginner-content";
 
 export function generateStaticParams() {
   return getAllAcademyCourseSlugs().map((slug) => ({ slug }));
@@ -56,6 +57,41 @@ function LockIcon({ className }: { className?: string }) {
   );
 }
 
+function CheckIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+      className={className}
+    >
+      <path d="M20 6L9 17l-5-5" />
+    </svg>
+  );
+}
+
+function AlertIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+      className={className}
+    >
+      <path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z" />
+      <path d="M12 9v4M12 17h.01" />
+    </svg>
+  );
+}
+
 export default async function CourseDetailPage({
   params,
 }: {
@@ -67,7 +103,11 @@ export default async function CourseDetailPage({
     notFound();
   }
   const { course, category } = result;
-  const lessons = getCourseLessons(course);
+  const courseContent = getBeginnerContent(slug);
+  const lessons = getCourseLessons(course).map((lesson, index) => ({
+    ...lesson,
+    title: courseContent?.sections[index]?.heading ?? lesson.title,
+  }));
 
   const supabase = await createClient();
   const {
@@ -144,6 +184,94 @@ export default async function CourseDetailPage({
                   </div>
                 ))}
               </div>
+
+              {courseContent ? (
+                <>
+                  {/* Course outline */}
+                  <article className="mb-8 rounded-card border border-border bg-surface p-[clamp(20px,3.5vw,40px)] shadow-soft">
+                    <h2 className="mb-5 font-display text-[1.5rem] font-medium text-fg">
+                      What you&rsquo;ll learn
+                    </h2>
+                    <ol className="flex flex-col gap-2.5">
+                      {courseContent.sections.map((section, index) => (
+                        <li
+                          key={section.heading}
+                          className="flex items-center gap-3 text-[15px] text-fg"
+                        >
+                          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-bg font-display text-sm font-semibold text-primary">
+                            {index + 1}
+                          </span>
+                          {section.heading}
+                        </li>
+                      ))}
+                    </ol>
+                  </article>
+
+                  {/* Teaching content */}
+                  <article className="mb-8 rounded-card border border-border bg-surface p-[clamp(20px,3.5vw,40px)] shadow-soft">
+                    <p className="mb-7 text-[clamp(1rem,1.5vw,1.15rem)] leading-[1.7] text-muted">
+                      {courseContent.intro}
+                    </p>
+                    {courseContent.sections.map((section) => (
+                      <div key={section.heading} className="mb-7 last:mb-0">
+                        <h3 className="mb-3 font-display text-[1.35rem] font-medium leading-snug text-fg">
+                          {section.heading}
+                        </h3>
+                        {section.paragraphs.map((paragraph, index) => (
+                          <p
+                            key={index}
+                            className="mb-3 text-[15px] leading-[1.7] text-muted last:mb-0"
+                          >
+                            {paragraph}
+                          </p>
+                        ))}
+                      </div>
+                    ))}
+                  </article>
+
+                  {/* Key takeaways */}
+                  <div className="mb-8 rounded-card border border-border bg-bg p-[clamp(20px,3.5vw,36px)]">
+                    <h2 className="mb-5 flex items-center gap-2.5 font-display text-[1.35rem] font-medium text-fg">
+                      <span className="flex h-8 w-8 items-center justify-center rounded-full bg-success text-surface">
+                        <CheckIcon className="h-4 w-4" />
+                      </span>
+                      Key takeaways
+                    </h2>
+                    <ul className="flex flex-col gap-3">
+                      {courseContent.keyTips.map((tip) => (
+                        <li
+                          key={tip}
+                          className="flex items-start gap-3 text-[15px] leading-[1.6] text-fg"
+                        >
+                          <CheckIcon className="mt-1 h-4 w-4 shrink-0 text-success" />
+                          {tip}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  {/* Common beginner mistakes */}
+                  <div className="mb-8 rounded-card border border-border bg-bg p-[clamp(20px,3.5vw,36px)]">
+                    <h2 className="mb-5 flex items-center gap-2.5 font-display text-[1.35rem] font-medium text-fg">
+                      <span className="flex h-8 w-8 items-center justify-center rounded-full bg-accent text-fg">
+                        <AlertIcon className="h-4 w-4" />
+                      </span>
+                      Common beginner mistakes
+                    </h2>
+                    <ul className="flex flex-col gap-3">
+                      {courseContent.commonMistakes.map((mistake) => (
+                        <li
+                          key={mistake}
+                          className="flex items-start gap-3 text-[15px] leading-[1.6] text-fg"
+                        >
+                          <AlertIcon className="mt-0.5 h-4 w-4 shrink-0 text-accent" />
+                          {mistake}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </>
+              ) : null}
 
               {/* C. Course content / lessons */}
               <article className="mb-8 rounded-card border border-border bg-surface p-[clamp(20px,3.5vw,40px)] shadow-soft">
