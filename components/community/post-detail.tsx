@@ -4,16 +4,19 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Button from "@/components/ui/button";
+import AuthorBadge from "@/components/community/author-badge";
 import {
   createComment,
   toggleLike,
   type CommunityComment,
+  type CommunityPostListItem,
   type PostDetail as PostDetailData,
 } from "@/lib/community/actions";
 
 type PostDetailProps = {
   initial: PostDetailData;
   authed: boolean;
+  related: CommunityPostListItem[];
 };
 
 function formatDate(iso: string) {
@@ -28,7 +31,11 @@ function authorLabel(userId: string) {
   return `Player ${userId.slice(0, 6)}`;
 }
 
-export default function PostDetail({ initial, authed }: PostDetailProps) {
+export default function PostDetail({
+  initial,
+  authed,
+  related,
+}: PostDetailProps) {
   const router = useRouter();
   const { post } = initial;
 
@@ -94,18 +101,42 @@ export default function PostDetail({ initial, authed }: PostDetailProps) {
       </Link>
 
       <article className="rounded-card border border-border bg-surface p-[clamp(24px,4vw,48px)] shadow-soft">
-        <h1 className="mb-2 font-display text-[clamp(2rem,4vw,3rem)] font-medium leading-[1.08] tracking-[-0.02em] text-fg">
+        <h1 className="mb-3 font-display text-[clamp(2rem,4vw,3rem)] font-medium leading-[1.08] tracking-[-0.02em] text-fg">
           {post.title}
         </h1>
-        <p className="mb-6 text-[13px] text-muted">
-          {authorLabel(post.user_id)} · {formatDate(post.created_at)}
-        </p>
+        <div className="mb-4">
+          <AuthorBadge
+            author={initial.author}
+            userId={post.user_id}
+            createdAt={post.created_at}
+          />
+        </div>
 
-        {post.image_url ? (
+        {post.tags && post.tags.length > 0 ? (
+          <div className="mb-6 flex flex-wrap gap-1.5">
+            {post.tags.map((tag) => (
+              <span
+                key={tag}
+                className="inline-flex items-center rounded-full border border-border bg-bg px-2.5 py-1 text-[12px] font-medium text-muted"
+              >
+                {tag}
+              </span>
+            ))}
+          </div>
+        ) : null}
+
+        {post.media_type === "video" && post.media_url ? (
+          <video
+            src={post.media_url}
+            controls
+            preload="metadata"
+            className="mb-6 max-h-[520px] w-full rounded-[16px] bg-bg"
+          />
+        ) : post.media_url || post.image_url ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={post.image_url}
-            alt="Shared Mahjong hand"
+            src={post.media_url ?? post.image_url ?? ""}
+            alt="Shared Mahjong post media"
             className="mb-6 max-h-[480px] w-full rounded-[16px] object-contain"
           />
         ) : null}
@@ -221,6 +252,60 @@ export default function PostDetail({ initial, authed }: PostDetailProps) {
           </ul>
         )}
       </section>
+
+      {/* Related posts */}
+      {related.length > 0 ? (
+        <section className="mt-12">
+          <h2 className="mb-4 font-display text-[1.5rem] font-medium tracking-[-0.01em] text-fg">
+            You may also like
+          </h2>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            {related.map((item) => (
+              <Link
+                key={item.id}
+                href={`/community/${item.id}`}
+                className="flex flex-col rounded-card border border-border bg-surface p-5 shadow-soft transition duration-200 hover:-translate-y-1 hover:shadow-card"
+              >
+                {item.media_type === "video" && item.media_url ? (
+                  <video
+                    src={item.media_url}
+                    preload="metadata"
+                    className="mb-3 h-32 w-full rounded-[12px] bg-bg object-cover"
+                  />
+                ) : item.media_url || item.image_url ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={item.media_url ?? item.image_url ?? ""}
+                    alt=""
+                    className="mb-3 h-32 w-full rounded-[12px] object-cover"
+                  />
+                ) : null}
+
+                {item.tags && item.tags.length > 0 ? (
+                  <div className="mb-2 flex flex-wrap gap-1.5">
+                    {item.tags.slice(0, 2).map((tag) => (
+                      <span
+                        key={tag}
+                        className="inline-flex items-center rounded-full border border-border bg-bg px-2 py-0.5 text-[11px] font-medium text-muted"
+                      >
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                ) : null}
+
+                <h3 className="font-display text-[1.15rem] font-medium leading-snug text-fg">
+                  {item.title}
+                </h3>
+                <p className="mt-2 flex items-center gap-3 text-[12px] text-muted">
+                  <span>{item.likes_count} likes</span>
+                  <span>{item.comments_count} comments</span>
+                </p>
+              </Link>
+            ))}
+          </div>
+        </section>
+      ) : null}
     </div>
   );
 }

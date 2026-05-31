@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import SiteHeader from "@/components/layout/site-header";
 import Container from "@/components/ui/container";
 import PostDetail from "@/components/community/post-detail";
-import { getPost } from "@/lib/community/actions";
+import { getPost, getRelatedPosts } from "@/lib/community/actions";
 
 export const metadata = {
   title: "Post — Community — JoinMahj",
@@ -26,13 +26,19 @@ export default async function CommunityPostPage({
     notFound();
   }
 
+  const related = await getRelatedPosts(id, detail.post.tags ?? []);
+
   return (
     <>
       <SiteHeader userEmail={user?.email ?? null} />
       <main className="pt-24">
         <section className="py-[clamp(40px,6vw,72px)]">
           <Container>
-            <PostDetail initial={detail} authed={Boolean(user)} />
+            <PostDetail
+              initial={detail}
+              authed={Boolean(user)}
+              related={related}
+            />
           </Container>
         </section>
       </main>

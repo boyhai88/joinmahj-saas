@@ -1,36 +1,45 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Container from "@/components/ui/container";
 import Button from "@/components/ui/button";
 import CreatePostDialog from "@/components/community/create-post-dialog";
+import AuthorBadge from "@/components/community/author-badge";
 import {
   getPosts,
   toggleLike,
   type CommunityPostListItem,
+  type CommunityStats,
 } from "@/lib/community/actions";
+
+type FeedKey = "latest" | "popular" | "photos" | "videos";
 
 type CommunityPageProps = {
   initialPosts: CommunityPostListItem[];
   authed: boolean;
+  stats: CommunityStats;
 };
 
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString(undefined, {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
-}
+const FEEDS: { id: FeedKey; label: string }[] = [
+  { id: "latest", label: "Latest" },
+  { id: "popular", label: "Popular" },
+  { id: "photos", label: "Photos" },
+  { id: "videos", label: "Videos" },
+];
+
+const TRENDING_TAGS = [
+  "Beginner",
+  "Strategy",
+  "Hand Review",
+  "Winning Story",
+  "Club",
+  "Question",
+];
 
 function preview(content: string) {
   return content.length > 120 ? `${content.slice(0, 120)}…` : content;
-}
-
-function authorLabel(userId: string) {
-  return `Player ${userId.slice(0, 6)}`;
 }
 
 function HeartIcon({ filled }: { filled: boolean }) {
@@ -67,13 +76,73 @@ function CommentIcon() {
   );
 }
 
+function TagChips({ tags }: { tags: string[] }) {
+  if (!tags || tags.length === 0) return null;
+  return (
+    <div className="mb-3 flex flex-wrap gap-1.5">
+      {tags.map((tag) => (
+        <span
+          key={tag}
+          className="inline-flex items-center rounded-full border border-border bg-bg px-2.5 py-1 text-[11px] font-medium text-muted"
+        >
+          {tag}
+        </span>
+      ))}
+    </div>
+  );
+}
+
 export default function CommunityPage({
   initialPosts,
   authed,
+  stats,
 }: CommunityPageProps) {
   const router = useRouter();
   const [posts, setPosts] = useState<CommunityPostListItem[]>(initialPosts);
   const [open, setOpen] = useState(false);
+  const [feed, setFeed] = useState<FeedKey>("latest");
+  const [activeTag, setActiveTag] = useState<string | null>(null);
+
+  const tagCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const post of posts) {
+      for (const tag of post.tags ?? []) {
+        counts.set(tag, (counts.get(tag) ?? 0) + 1);
+      }
+    }
+    return TRENDING_TAGS.map((tag) => ({ tag, count: counts.get(tag) ?? 0 }))
+      .filter((item) => item.count > 0)
+      .sort((a, b) => b.count - a.count);
+  }, [posts]);
+
+  const visiblePosts = useMemo(() => {
+    let list = posts;
+
+    if (activeTag) {
+      list = list.filter((post) => (post.tags ?? []).includes(activeTag));
+    }
+
+    if (feed === "photos") {
+      list = list.filter((post) => post.media_type === "image");
+    } else if (feed === "videos") {
+      list = list.filter((post) => post.media_type === "video");
+    }
+
+    const sorted = [...list];
+    if (feed === "popular") {
+      sorted.sort(
+        (a, b) =>
+          b.likes_count - a.likes_count ||
+          b.comments_count - a.comments_count
+      );
+    } else {
+      sorted.sort(
+        (a, b) =>
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      );
+    }
+    return sorted;
+  }, [posts, feed, activeTag]);
 
   function startCreate() {
     if (!authed) {
@@ -92,16 +161,15 @@ export default function CommunityPage({
     }
   }
 
-  async function handleLike(post: CommunityPostListItem) {
+  async function handleLike(target: CommunityPostListItem) {
     if (!authed) {
       router.push("/login");
       return;
     }
 
-    // Optimistic update.
     setPosts((prev) =>
       prev.map((p) =>
-        p.id === post.id
+        p.id === target.id
           ? {
               ...p,
               liked_by_me: !p.liked_by_me,
@@ -112,23 +180,22 @@ export default function CommunityPage({
     );
 
     try {
-      const result = await toggleLike(post.id);
+      const result = await toggleLike(target.id);
       setPosts((prev) =>
         prev.map((p) =>
-          p.id === post.id
+          p.id === target.id
             ? { ...p, liked_by_me: result.liked, likes_count: result.likes_count }
             : p
         )
       );
     } catch {
-      // Revert on failure.
       setPosts((prev) =>
         prev.map((p) =>
-          p.id === post.id
+          p.id === target.id
             ? {
                 ...p,
-                liked_by_me: post.liked_by_me,
-                likes_count: post.likes_count,
+                liked_by_me: target.liked_by_me,
+                likes_count: target.likes_count,
               }
             : p
         )
@@ -136,60 +203,154 @@ export default function CommunityPage({
     }
   }
 
+  const statItems = [
+    { label: "Posts", value: stats.posts },
+    { label: "Photos", value: stats.photos },
+    { label: "Videos", value: stats.videos },
+    { label: "Members", value: stats.members },
+  ];
+
   return (
     <Container>
       {/* Hero */}
-      <div className="mx-auto mb-[clamp(32px,5vw,56px)] max-w-[720px] text-center">
+      <div className="mx-auto mb-[clamp(28px,4vw,48px)] max-w-[760px] text-center">
         <p className="mb-4 text-[11px] font-semibold uppercase tracking-[0.14em] text-accent">
           Community
         </p>
         <h1 className="mb-4 font-display text-[clamp(2.25rem,4.5vw,3.5rem)] font-medium leading-[1.08] tracking-[-0.02em] text-fg">
-          Community
+          Mahjong Fan Community
         </h1>
         <p className="mx-auto mb-7 max-w-[48ch] text-[clamp(1.05rem,1.6vw,1.3rem)] leading-[1.65] text-muted">
-          Learn together. Ask questions. Share wins.
+          Learn together. Ask questions. Share wins, hands, and clips.
         </p>
         <Button type="button" onClick={startCreate}>
           Create Post
         </Button>
       </div>
 
-      {/* Post list */}
-      <div className="mx-auto max-w-[720px]">
-        {posts.length === 0 ? (
+      {/* Community stats */}
+      <div className="mx-auto mb-[clamp(28px,4vw,44px)] grid max-w-[760px] grid-cols-2 gap-px overflow-hidden rounded-card border border-border bg-border shadow-soft sm:grid-cols-4">
+        {statItems.map((item) => (
+          <div key={item.label} className="bg-surface px-4 py-5 text-center">
+            <p className="font-display text-[1.75rem] font-semibold leading-none text-fg [font-variant-numeric:tabular-nums]">
+              {item.value}
+            </p>
+            <p className="mt-1.5 text-[11px] font-semibold uppercase tracking-widest text-muted">
+              {item.label}
+            </p>
+          </div>
+        ))}
+      </div>
+
+      <div className="mx-auto max-w-[760px]">
+        {/* Feed navigation */}
+        <div className="mb-5 -mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
+          {FEEDS.map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => setFeed(item.id)}
+              aria-pressed={feed === item.id}
+              className={`shrink-0 rounded-full border px-4 py-2 text-sm font-medium transition ${
+                feed === item.id
+                  ? "border-accent bg-gold-light text-primary"
+                  : "border-border bg-surface text-muted hover:text-fg"
+              }`}
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Trending tags */}
+        {tagCounts.length > 0 ? (
+          <div className="mb-6">
+            <p className="mb-2 text-[11px] font-semibold uppercase tracking-widest text-muted">
+              Trending Tags
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {activeTag ? (
+                <button
+                  type="button"
+                  onClick={() => setActiveTag(null)}
+                  className="rounded-full border border-border bg-surface px-3 py-1.5 text-[13px] font-medium text-muted transition hover:text-fg"
+                >
+                  Clear filter
+                </button>
+              ) : null}
+              {tagCounts.map(({ tag, count }) => {
+                const active = activeTag === tag;
+                return (
+                  <button
+                    key={tag}
+                    type="button"
+                    onClick={() => setActiveTag(active ? null : tag)}
+                    aria-pressed={active}
+                    className={`rounded-full border px-3 py-1.5 text-[13px] font-medium transition ${
+                      active
+                        ? "border-accent bg-gold-light text-primary"
+                        : "border-border bg-surface text-muted hover:text-fg"
+                    }`}
+                  >
+                    #{tag.replace(/\s+/g, "")} ({count})
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        ) : null}
+
+        {/* Post list */}
+        {visiblePosts.length === 0 ? (
           <div className="rounded-card border border-border bg-surface p-[clamp(32px,6vw,56px)] text-center shadow-soft">
             <h2 className="mb-2 font-display text-[1.5rem] font-medium tracking-[-0.01em] text-fg">
-              No posts yet.
+              No posts found
             </h2>
             <p className="mb-6 text-sm text-muted">
-              Be the first player to start the conversation.
+              Try another category or tag.
             </p>
             <Button type="button" onClick={startCreate}>
-              Create First Post
+              Create Post
             </Button>
           </div>
         ) : (
           <div className="flex flex-col gap-4">
-            {posts.map((post) => (
+            {visiblePosts.map((post) => (
               <article
                 key={post.id}
                 className="rounded-card border border-border bg-surface p-6 shadow-soft transition duration-200 hover:shadow-card"
               >
-                <Link href={`/community/${post.id}`} className="block">
-                  {post.image_url ? (
-                    // eslint-disable-next-line @next/next/no-img-element
+                <div className="mb-4">
+                  <AuthorBadge
+                    author={post.author}
+                    userId={post.user_id}
+                    createdAt={post.created_at}
+                  />
+                </div>
+
+                {post.media_type === "video" && post.media_url ? (
+                  <video
+                    src={post.media_url}
+                    controls
+                    preload="metadata"
+                    className="mb-4 max-h-[300px] w-full rounded-[16px] bg-bg"
+                  />
+                ) : post.media_url || post.image_url ? (
+                  <Link href={`/community/${post.id}`} className="block">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
-                      src={post.image_url}
+                      src={post.media_url ?? post.image_url ?? ""}
                       alt=""
                       className="mb-4 max-h-[260px] w-full rounded-[16px] object-cover"
                     />
-                  ) : null}
+                  </Link>
+                ) : null}
+
+                <Link href={`/community/${post.id}`} className="block">
+                  <TagChips tags={post.tags} />
                   <h3 className="mb-2 font-display text-[1.35rem] font-medium leading-[1.2] tracking-[-0.01em] text-fg">
                     {post.title}
                   </h3>
-                  <p className="mb-3 text-[13px] text-muted">
-                    {authorLabel(post.user_id)} · {formatDate(post.created_at)}
-                  </p>
                   <p className="mb-4 text-sm leading-[1.6] text-muted">
                     {preview(post.content)}
                   </p>
