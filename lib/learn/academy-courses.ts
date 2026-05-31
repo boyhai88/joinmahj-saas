@@ -6,6 +6,9 @@ export type AcademyCourse = {
   summary: string;
   duration: string;
   tier: CourseTier;
+  lessons?: string[];
+  objectives?: string[];
+  audience?: string[];
 };
 
 export type AcademyCategory = {
@@ -80,6 +83,23 @@ export const academyCategories: AcademyCategory[] = [
           "Keep the tiles that give you the most ways to improve and let go of the dead weight.",
         duration: "34 min",
         tier: "pro",
+        lessons: [
+          "Counting acceptance and ukeire",
+          "Two-sided vs closed wait shapes",
+          "Choosing between equal discards",
+          "Floating tiles and backup shapes",
+          "Speed-first decision drills",
+        ],
+        objectives: [
+          "Count how many tiles improve your hand for any discard.",
+          "Compare candidate discards by their acceptance, not by feel.",
+          "Recognize which partial shapes are worth keeping.",
+          "Make faster, more confident efficiency decisions.",
+        ],
+        audience: [
+          "Players who know the rules and want to win more often.",
+          "Anyone who tends to draw well but discards the wrong tile.",
+        ],
       },
       {
         slug: "shanten-fundamentals",
@@ -88,6 +108,23 @@ export const academyCategories: AcademyCategory[] = [
           "Learn to count how far you are from a winning hand and use it to guide every decision.",
         duration: "38 min",
         tier: "pro",
+        lessons: [
+          "What shanten really measures",
+          "Counting shanten quickly by hand",
+          "Standard hand vs special shapes",
+          "Using shanten to pick discards",
+          "Shanten and acceptance together",
+        ],
+        objectives: [
+          "Define shanten and count it for any hand.",
+          "Use shanten to know when to push and when to reshape.",
+          "Balance lowering shanten against keeping acceptance.",
+          "Spot the fastest path to tenpai.",
+        ],
+        audience: [
+          "Players comfortable with tile efficiency basics.",
+          "Anyone who wants a clear, numeric read on hand progress.",
+        ],
       },
       {
         slug: "defensive-mahjong",
@@ -96,6 +133,23 @@ export const academyCategories: AcademyCategory[] = [
           "Know when to fold, what is safe to discard, and how to avoid feeding your opponents.",
         duration: "36 min",
         tier: "pro",
+        lessons: [
+          "Reading the danger signals",
+          "Safe tiles and genbutsu",
+          "Suji and wall-based reasoning",
+          "When to fold a live hand",
+          "Defense under time pressure",
+        ],
+        objectives: [
+          "Identify when an opponent is likely tenpai.",
+          "Find genuinely safe tiles to discard under threat.",
+          "Decide between pushing for the win and folding.",
+          "Cut your deal-in rate without going fully passive.",
+        ],
+        audience: [
+          "Players who win hands but lose points to big deal-ins.",
+          "Anyone ready to balance offense with real defense.",
+        ],
       },
       {
         slug: "reading-opponents",
@@ -104,6 +158,23 @@ export const academyCategories: AcademyCategory[] = [
           "Use discards and calls to infer what the players around you are collecting.",
         duration: "32 min",
         tier: "pro",
+        lessons: [
+          "Reading the discard order",
+          "What calls reveal about a hand",
+          "Tracking suits and honors",
+          "Estimating waits and value",
+          "Putting reads into action",
+        ],
+        objectives: [
+          "Infer an opponent's direction from their discards.",
+          "Use exposed calls to narrow their likely hand.",
+          "Estimate which tiles are dangerous to each player.",
+          "Turn reads into concrete keep-or-fold choices.",
+        ],
+        audience: [
+          "Players who track their own hand but ignore opponents.",
+          "Anyone who wants to play the table, not just the tiles.",
+        ],
       },
       {
         slug: "real-game-analysis",
@@ -112,6 +183,23 @@ export const academyCategories: AcademyCategory[] = [
           "Walk through full hands and see how the concepts connect under real pressure.",
         duration: "42 min",
         tier: "pro",
+        lessons: [
+          "Framing a hand from the deal",
+          "Early-game shaping decisions",
+          "Mid-game pivots and reads",
+          "Endgame push-or-fold calls",
+          "Reviewing your own games",
+        ],
+        objectives: [
+          "Connect efficiency, defense, and reads in real hands.",
+          "Narrate the reasoning behind each decision point.",
+          "Spot the turning points that decided a hand.",
+          "Build a repeatable self-review habit.",
+        ],
+        audience: [
+          "Players who know the concepts but struggle to apply them live.",
+          "Anyone who learns best from worked, full-hand examples.",
+        ],
       },
     ],
   },
@@ -129,6 +217,23 @@ export const academyCategories: AcademyCategory[] = [
           "Adapt your play to scores, seat positions, and the long arc of a multi-round event.",
         duration: "40 min",
         tier: "pro",
+        lessons: [
+          "Scoreboard-aware decision making",
+          "Seat and dealer-turn strategy",
+          "Managing risk across rounds",
+          "Closing out a winning position",
+          "Mounting a comeback from behind",
+        ],
+        objectives: [
+          "Adjust aggression based on the current score.",
+          "Value placement and survival over raw points.",
+          "Plan across a full multi-round event.",
+          "Protect a lead and chase a deficit correctly.",
+        ],
+        audience: [
+          "Competitive players preparing for ranked or live events.",
+          "Anyone who plays well per hand but mismanages the match.",
+        ],
       },
       {
         slug: "professional-thinking",
@@ -137,6 +242,23 @@ export const academyCategories: AcademyCategory[] = [
           "Develop the disciplined, expected-value mindset that separates pros from strong amateurs.",
         duration: "44 min",
         tier: "pro",
+        lessons: [
+          "Thinking in expected value",
+          "Separating results from decisions",
+          "Managing tilt and focus",
+          "Building consistent routines",
+          "Studying like a professional",
+        ],
+        objectives: [
+          "Evaluate plays by expected value, not outcome.",
+          "Avoid results-oriented thinking after wins and losses.",
+          "Stay composed and focused over long sessions.",
+          "Build a deliberate, repeatable study process.",
+        ],
+        audience: [
+          "Strong players who want a professional mental game.",
+          "Anyone whose results swing with their mood.",
+        ],
       },
       {
         slug: "advanced-defense",
@@ -145,6 +267,23 @@ export const academyCategories: AcademyCategory[] = [
           "Layer safe-tile reasoning, push-or-fold math, and risk control into one fluid system.",
         duration: "46 min",
         tier: "pro",
+        lessons: [
+          "Layered safe-tile reasoning",
+          "Quantifying push-or-fold",
+          "Defending against multiple threats",
+          "Reading double and chase riichi",
+          "Risk control in the endgame",
+        ],
+        objectives: [
+          "Combine suji, walls, and reads into one safety model.",
+          "Estimate push-or-fold value under pressure.",
+          "Defend correctly against more than one opponent.",
+          "Minimize losses in high-danger endgames.",
+        ],
+        audience: [
+          "Players who have mastered basic defense.",
+          "Anyone bleeding points in multi-threat situations.",
+        ],
       },
       {
         slug: "high-level-hand-reading",
@@ -153,6 +292,23 @@ export const academyCategories: AcademyCategory[] = [
           "Narrow opponents to precise waits using subtle timing and discard signals.",
         duration: "48 min",
         tier: "pro",
+        lessons: [
+          "Timing tells in the discards",
+          "Negative reads and absent tiles",
+          "Combining calls with timing",
+          "Pinpointing exact waits",
+          "Reading value and intent",
+        ],
+        objectives: [
+          "Use discard timing to refine your reads.",
+          "Reason from tiles that are missing, not just present.",
+          "Narrow an opponent to a precise wait.",
+          "Anticipate both the wait and the hand value.",
+        ],
+        audience: [
+          "Advanced players who already read opponents well.",
+          "Anyone chasing the last edge in close decisions.",
+        ],
       },
       {
         slug: "championship-case-studies",
@@ -161,6 +317,23 @@ export const academyCategories: AcademyCategory[] = [
           "Dissect decisive hands from championship play and learn what the winners saw.",
         duration: "52 min",
         tier: "pro",
+        lessons: [
+          "Anatomy of a championship hand",
+          "Decisive pushes under pressure",
+          "Game-saving defensive folds",
+          "Reads that won the title",
+          "Lessons you can apply today",
+        ],
+        objectives: [
+          "Break down high-stakes hands move by move.",
+          "Understand why champions chose each line.",
+          "Recognize the moments that decided a match.",
+          "Translate elite decisions into your own play.",
+        ],
+        audience: [
+          "Tournament-minded players studying the very best.",
+          "Anyone who wants to learn from championship games.",
+        ],
       },
     ],
   },
@@ -208,7 +381,7 @@ export function getCourseLessons(course: AcademyCourse): CourseLesson[] {
 
   return lessonTitleTemplates.map((title, index) => ({
     index: index + 1,
-    title,
+    title: course.lessons?.[index] ?? title,
     duration: `${per} min`,
     locked: course.tier === "pro",
   }));

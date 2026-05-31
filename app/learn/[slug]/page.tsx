@@ -142,7 +142,20 @@ export default async function CourseDetailPage({
     data: { user },
   } = await supabase.auth.getUser();
 
+  let userPlan: "free" | "pro" = "free";
+  if (user) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("plan")
+      .eq("id", user.id)
+      .maybeSingle();
+    userPlan = profile?.plan === "pro" ? "pro" : "free";
+  }
+
   const isPro = course.tier === "pro";
+  const isLoggedIn = Boolean(user);
+  // Free courses are open to everyone; Pro courses require a Pro plan.
+  const hasAccess = !isPro || userPlan === "pro";
 
   const infoItems = [
     { label: "Level", value: category.level },
@@ -229,7 +242,51 @@ export default async function CourseDetailPage({
                 ))}
               </div>
 
-              {courseContent ? (
+              {/* About this course: objectives + audience (visible to everyone) */}
+              {course.objectives?.length || course.audience?.length ? (
+                <div className="mb-8 grid grid-cols-1 gap-6 md:grid-cols-2">
+                  {course.objectives?.length ? (
+                    <div className="rounded-card border border-border bg-surface p-[clamp(20px,3.5vw,32px)] shadow-soft">
+                      <h2 className="mb-4 font-display text-[1.35rem] font-medium text-fg">
+                        Learning objectives
+                      </h2>
+                      <ul className="flex flex-col gap-3">
+                        {course.objectives.map((objective) => (
+                          <li
+                            key={objective}
+                            className="flex items-start gap-3 text-[15px] leading-[1.6] text-fg"
+                          >
+                            <CheckIcon className="mt-1 h-4 w-4 shrink-0 text-success" />
+                            {objective}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ) : null}
+
+                  {course.audience?.length ? (
+                    <div className="rounded-card border border-border bg-surface p-[clamp(20px,3.5vw,32px)] shadow-soft">
+                      <h2 className="mb-4 font-display text-[1.35rem] font-medium text-fg">
+                        Who this is for
+                      </h2>
+                      <ul className="flex flex-col gap-3">
+                        {course.audience.map((item) => (
+                          <li
+                            key={item}
+                            className="flex items-start gap-3 text-[15px] leading-[1.6] text-fg"
+                          >
+                            <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-accent" />
+                            {item}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
+
+              {hasAccess ? (
+                courseContent ? (
                 <>
                   {/* Course outline */}
                   <article className="mb-8 rounded-card border border-border bg-surface p-[clamp(20px,3.5vw,40px)] shadow-soft">
@@ -315,6 +372,16 @@ export default async function CourseDetailPage({
                     </ul>
                   </div>
                 </>
+                ) : (
+                  <div className="mb-8 rounded-card border border-border bg-bg p-[clamp(24px,4vw,40px)] text-center">
+                    <p className="font-display text-[1.35rem] font-medium text-fg">
+                      Lesson content in progress
+                    </p>
+                    <p className="mt-2 text-[15px] leading-[1.6] text-muted">
+                      This Pro lesson content is being prepared.
+                    </p>
+                  </div>
+                )
               ) : null}
 
               {/* C. Course content / lessons */}
@@ -376,33 +443,62 @@ export default async function CourseDetailPage({
                 </ul>
               </article>
 
-              {/* D. CTA */}
-              <div className="flex flex-col gap-3 rounded-card border border-border bg-surface p-[clamp(20px,3.5vw,40px)] shadow-soft sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                  <p className="font-display text-xl font-medium text-fg">
-                    {isPro ? "Unlock the full course" : "Ready to begin?"}
-                  </p>
-                  <p className="mt-1 text-[13px] text-muted">
-                    {isPro
-                      ? "This is a Pro course. Lessons are coming soon."
-                      : "All lessons in this course are free. Content is coming soon."}
-                  </p>
+              {/* D. CTA / Pro lock */}
+              {hasAccess ? (
+                <div className="flex flex-col gap-3 rounded-card border border-border bg-surface p-[clamp(20px,3.5vw,40px)] shadow-soft sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="font-display text-xl font-medium text-fg">
+                      {isPro ? "You have Pro access" : "Ready to begin?"}
+                    </p>
+                    <p className="mt-1 text-[13px] text-muted">
+                      {isPro
+                        ? "Full lessons are coming soon."
+                        : "All lessons in this course are free. Content is coming soon."}
+                    </p>
+                  </div>
+                  {isPro ? (
+                    <Button
+                      href="/learn"
+                      variant="secondary"
+                      size="md"
+                      className="shrink-0"
+                    >
+                      Browse more courses
+                    </Button>
+                  ) : (
+                    <Button
+                      href="/pricing"
+                      variant="secondary"
+                      size="md"
+                      className="shrink-0"
+                    >
+                      Start this free course
+                    </Button>
+                  )}
                 </div>
-                {isPro ? (
-                  <Button href="/pricing" size="md" className="shrink-0">
-                    Unlock with Pro
-                  </Button>
-                ) : (
-                  <Button
-                    href="/pricing"
-                    variant="secondary"
-                    size="md"
-                    className="shrink-0"
-                  >
-                    Start this free course
-                  </Button>
-                )}
-              </div>
+              ) : (
+                <div className="flex flex-col items-center rounded-card border border-border bg-surface p-[clamp(28px,4vw,48px)] text-center shadow-soft">
+                  <span className="mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-linear-to-br from-gold-light to-[oklch(85%_0.04_80)] text-primary shadow-soft">
+                    <LockIcon className="h-6 w-6" />
+                  </span>
+                  <h2 className="mb-2 font-display text-[clamp(1.5rem,2.6vw,2rem)] font-medium text-fg">
+                    Unlock this Pro course
+                  </h2>
+                  <p className="mb-7 max-w-[44ch] text-[15px] leading-[1.6] text-muted">
+                    Upgrade to Pro to access advanced Mahjong lessons,
+                    AI-assisted training, and full strategy content.
+                  </p>
+                  {isLoggedIn ? (
+                    <Button href="/pricing" size="md">
+                      Upgrade to Pro
+                    </Button>
+                  ) : (
+                    <Button href="/login" size="md">
+                      Log in to unlock
+                    </Button>
+                  )}
+                </div>
+              )}
             </div>
           </Container>
         </section>
