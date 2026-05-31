@@ -3,7 +3,7 @@ import SectionHeader from "@/components/ui/section-header";
 import Button from "@/components/ui/button";
 import PricingCheckoutButton from "@/components/pricing/pricing-checkout-button";
 
-type PlanKey = "free" | "member" | "club_pro";
+type PlanKey = "free" | "member";
 
 type Plan = {
   key: PlanKey;
@@ -20,7 +20,6 @@ type Plan = {
 const priceIdByPlan: Record<PlanKey, string | undefined> = {
   free: undefined,
   member: process.env.NEXT_PUBLIC_STRIPE_MAHJ_MEMBER_PRICE_ID,
-  club_pro: process.env.NEXT_PUBLIC_STRIPE_CLUB_PRO_PRICE_ID,
 };
 
 const plans: Plan[] = [
@@ -29,38 +28,30 @@ const plans: Plan[] = [
     tier: "Starter",
     name: "Free",
     amount: "$0",
-    features: ["7-Day Roadmap", "Basic Tile Guide", "Community Access"],
+    features: [
+      "3 AI analyses per day",
+      "Beginner lessons",
+      "Community access",
+      "Save analysis history",
+    ],
     cta: "Get Started",
   },
   {
     key: "member",
-    tier: "Individual",
-    name: "Mahj Member",
+    tier: "Membership",
+    name: "Pro",
     amount: "$19",
     period: "/month",
     features: [
-      "Everything in Free",
-      "AI Coach",
-      "Weekly Challenges",
-      "Priority Club Access",
+      "Unlimited AI analysis",
+      "All Intermediate and Advanced lessons",
+      "Full analysis history",
+      "Community sharing",
+      "Priority future features",
     ],
-    cta: "Become a Member",
+    cta: "Upgrade to Pro",
     featured: true,
     badge: "Most Popular",
-  },
-  {
-    key: "club_pro",
-    tier: "For organizers",
-    name: "Club Pro",
-    amount: "$49",
-    period: "/month",
-    features: [
-      "Everything in Member",
-      "Host Tools",
-      "Club Management",
-      "Event Promotion",
-    ],
-    cta: "Start Club Pro",
   },
 ];
 
@@ -71,10 +62,15 @@ export default function PricingSection() {
         <SectionHeader
           eyebrow="Membership"
           title="Choose your path"
-          lead={<>Start free, level up when you&rsquo;re ready.</>}
+          lead={
+            <>
+              Start free with daily AI analyses and beginner lessons. Go Pro for
+              unlimited analysis and every Intermediate and Advanced course.
+            </>
+          }
         />
 
-        <div className="mx-auto grid max-w-[420px] grid-cols-1 items-stretch gap-6 lg:max-w-none lg:grid-cols-3">
+        <div className="mx-auto grid max-w-[420px] grid-cols-1 items-stretch gap-6 lg:max-w-[860px] lg:grid-cols-2">
           {plans.map((plan) => (
             <article
               key={plan.name}
@@ -117,7 +113,7 @@ export default function PricingSection() {
               </ul>
 
               {plan.key === "free" ? (
-                <Button href="#cta" variant="secondary" className="w-full">
+                <Button href="/signup" variant="secondary" className="w-full">
                   {plan.cta}
                 </Button>
               ) : (

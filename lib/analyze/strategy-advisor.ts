@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { isProMember } from "@/lib/auth/membership";
 
 const DASHSCOPE_URL =
   process.env.DASHSCOPE_BASE_URL ??
@@ -133,13 +134,8 @@ export async function analyzeStrategy(
   }
 
   // Membership gate: Pro is unlimited; Free is capped at FREE_DAILY_LIMIT/day.
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("plan")
-    .eq("id", user.id)
-    .maybeSingle();
-
-  const isPro = profile?.plan === "pro";
+  // Source of truth is the subscriptions table (member/club_pro = Pro).
+  const isPro = await isProMember(user.id);
   if (!isPro) {
     const today = new Date().toISOString().slice(0, 10);
     const { data: usage } = await supabase

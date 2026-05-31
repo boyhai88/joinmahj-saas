@@ -11,6 +11,7 @@ import {
   getCourseLessons,
 } from "@/lib/learn/academy-courses";
 import { getBeginnerContent } from "@/lib/learn/beginner-content";
+import { isProMember } from "@/lib/auth/membership";
 
 export function generateStaticParams() {
   return getAllAcademyCourseSlugs().map((slug) => ({ slug }));
@@ -142,20 +143,13 @@ export default async function CourseDetailPage({
     data: { user },
   } = await supabase.auth.getUser();
 
-  let userPlan: "free" | "pro" = "free";
-  if (user) {
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("plan")
-      .eq("id", user.id)
-      .maybeSingle();
-    userPlan = profile?.plan === "pro" ? "pro" : "free";
-  }
+  // Pro membership comes from the subscriptions table (member/club_pro = Pro).
+  const userIsPro = user ? await isProMember(user.id) : false;
 
   const isPro = course.tier === "pro";
   const isLoggedIn = Boolean(user);
   // Free courses are open to everyone; Pro courses require a Pro plan.
-  const hasAccess = !isPro || userPlan === "pro";
+  const hasAccess = !isPro || userIsPro;
 
   const infoItems = [
     { label: "Level", value: category.level },
@@ -484,10 +478,28 @@ export default async function CourseDetailPage({
                   <h2 className="mb-2 font-display text-[clamp(1.5rem,2.6vw,2rem)] font-medium text-fg">
                     Unlock this Pro course
                   </h2>
-                  <p className="mb-7 max-w-[44ch] text-[15px] leading-[1.6] text-muted">
+                  <p className="mb-6 max-w-[44ch] text-[15px] leading-[1.6] text-muted">
                     Upgrade to Pro to access advanced Mahjong lessons,
                     AI-assisted training, and full strategy content.
                   </p>
+
+                  <ul className="mb-8 flex w-full max-w-[420px] flex-col gap-3 text-left">
+                    {[
+                      "Unlock all Intermediate and Advanced lessons",
+                      "Unlimited AI hand analysis",
+                      "Save and review your analysis history",
+                      "Share hands with the community",
+                    ].map((benefit) => (
+                      <li
+                        key={benefit}
+                        className="flex items-start gap-3 text-[15px] leading-normal text-fg"
+                      >
+                        <CheckIcon className="mt-0.5 h-4 w-4 shrink-0 text-success" />
+                        {benefit}
+                      </li>
+                    ))}
+                  </ul>
+
                   {isLoggedIn ? (
                     <Button href="/pricing" size="md">
                       Upgrade to Pro
